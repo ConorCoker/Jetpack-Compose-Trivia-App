@@ -36,7 +36,7 @@ fun Questions(viewModel: QuestionsViewModel) {
         viewModel.data.value.data?.toMutableList() //the type is ArrayList so it needs to become mutable list for ui.
 
     val questionIndex = remember {
-        mutableStateOf(0)
+        mutableStateOf(1)
     }
     if (viewModel.data.value.loading == true) {
         CircularProgressIndicator() //shows a loading indicator whilst questions are loading.
@@ -173,6 +173,7 @@ fun QuestionDisplay(
                             }
                         )
                     }
+                }
                     Box(
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
@@ -199,7 +200,7 @@ fun QuestionDisplay(
             }
         }
     }
-}
+
 
 
 @Composable
