@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.jettrivia.screens.QuestionsViewModel
+import com.example.jettrivia.screens.TriviaHome
 import com.example.jettrivia.ui.theme.JetTriviaTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -35,26 +36,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun TriviaHome(viewModel: QuestionsViewModel = hiltViewModel()) {
-    Questions(viewModel)
-}
-
-@Composable
-fun Questions(viewModel: QuestionsViewModel) {
-    val questions =
-        viewModel.data.value.data?.toMutableList() //the type is ArrayList so it needs to become mutable list for ui.
-    if (viewModel.data.value.loading == true){
-        Log.d("loading", "Questions are loading")
-    } else {
-        Log.d("loading", "Questions: is done loading")
-        questions?.forEach {
-            Log.d("list", "Question: ${it.question}")
-        }
-
-    }
-
-}
 
 
 @Preview(showBackground = true)
