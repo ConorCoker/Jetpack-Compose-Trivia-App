@@ -37,4 +37,8 @@ class QuestionsViewModel @Inject constructor(private val repo: QuestionRepo) : V
 
         }
     }
+
+    fun getTotalQuestions() = data.value.data?.toMutableList()?.size!!
+
 }
+

@@ -1,5 +1,6 @@
 package com.example.jettrivia.components
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -7,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.ButtonDefaults.buttonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -22,8 +24,12 @@ import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.jettrivia.model.QuestionItem
@@ -38,8 +44,22 @@ fun Questions(viewModel: QuestionsViewModel) {
     val questionIndex = remember {
         mutableStateOf(1)
     }
+
+    val wasPreviousCorrect = remember {
+        mutableStateOf(true)
+    }
+    val score = remember{
+        mutableStateOf(0)
+    }
     if (viewModel.data.value.loading == true) {
-        CircularProgressIndicator() //shows a loading indicator whilst questions are loading.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppColors.mLightPurple),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(50.dp)) //shows a loading indicator whilst questions are loading.
+        }
     } else {
         Log.d("loading", "Questions: is done loading")
         val question = try {
@@ -51,9 +71,15 @@ fun Questions(viewModel: QuestionsViewModel) {
             QuestionDisplay(
                 question = question!!,
                 questionIndex = questionIndex,
-                viewModel = viewModel
-            ) {
-                questionIndex.value = questionIndex.value + 1
+                viewModel = viewModel,
+                score = score.value,
+                wasPreviousCorrect = wasPreviousCorrect.value
+            ) { currentIndex, wasItCorrect ->
+                questionIndex.value = currentIndex + 1
+                wasPreviousCorrect.value = wasItCorrect
+                if (wasItCorrect){
+                    score.value++
+                }
             }
         }
     }
@@ -65,7 +91,9 @@ fun QuestionDisplay(
     question: QuestionItem,
     questionIndex: MutableState<Int>,
     viewModel: QuestionsViewModel,
-    onNextClicked: (Int) -> Unit
+    wasPreviousCorrect: Boolean,
+    score: Int,
+    onNextClicked: (Int, Boolean) -> Unit
 ) {
 
     val choicesState = remember(question) {
@@ -77,7 +105,7 @@ fun QuestionDisplay(
     }
 
     val correctAnswerState = remember(question) {
-        mutableStateOf<Boolean?>(null)
+        mutableStateOf<Boolean>(false)
     }
 
     val updateAnswer: (Int) -> Unit = remember(question) {
@@ -96,7 +124,11 @@ fun QuestionDisplay(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start
         ) {
-            QuestionTracker(counter = questionIndex.value)
+            ShowProgress(
+                score = score,
+                minusOrPlus = wasPreviousCorrect
+            )
+            QuestionTracker(counter = questionIndex.value, outOf = viewModel.getTotalQuestions())
             DottedLine()
             Column() {
                 Text(
@@ -145,12 +177,7 @@ fun QuestionDisplay(
                             },
                             Modifier.padding(start = 16.dp),
                             colors = RadioButtonDefaults.colors(
-                                selectedColor =
-                                if (correctAnswerState.value == true && index == answerState.value) {
-                                    Color.Green.copy(alpha = 0.2f)
-                                } else {
-                                    Color.Red.copy(alpha = 0.2f)
-                                }
+                                selectedColor = AppColors.mOffWhite
                             )
                         )
                         Text(
@@ -158,13 +185,8 @@ fun QuestionDisplay(
                                 withStyle(
                                     style = SpanStyle(
                                         fontWeight = FontWeight.Light,
-                                        color = if (correctAnswerState.value == true && index == answerState.value) {
-                                            Color.Green
-                                        } else if (correctAnswerState.value == true && index != answerState.value) {
-                                            Color.Red
-                                        } else {
-                                            AppColors.mOffWhite
-                                        }
+                                        color = AppColors.mOffWhite
+
                                     )
                                 ) {
                                     append(answerText)
@@ -174,37 +196,36 @@ fun QuestionDisplay(
                         )
                     }
                 }
-                    Box(
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                Box(
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Button(
+                        onClick = { onNextClicked(questionIndex.value, correctAnswerState.value) },
+                        modifier = Modifier
+                            .padding(3.dp),
+                        shape = RoundedCornerShape(34.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = AppColors.mLightBlue
+                        )
                     ) {
-                        Button(
-                            onClick = { onNextClicked(questionIndex.value) },
-                            modifier = Modifier
-                                .padding(3.dp),
-                            shape = RoundedCornerShape(34.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = AppColors.mLightBlue
-                            )
-                        ) {
-                            Text(
-                                text = "Next",
-                                modifier = Modifier.padding(4.dp),
-                                color = AppColors.mOffWhite,
-                                fontSize = 17.sp
-                            )
-                        }
+                        Text(
+                            text = "Next",
+                            modifier = Modifier.padding(4.dp),
+                            color = AppColors.mOffWhite,
+                            fontSize = 17.sp
+                        )
                     }
-
-
                 }
+
+
             }
         }
     }
-
+}
 
 
 @Composable
-fun QuestionTracker(counter: Int = 10, outOf: Int = 4875) {
+fun QuestionTracker(counter: Int, outOf: Int) {
     Text(
         text = buildAnnotatedString {
             withStyle(style = ParagraphStyle(textIndent = TextIndent.None)) {
@@ -243,4 +264,63 @@ fun DottedLine() {
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
         )
     })
+}
+
+@SuppressLint("RememberReturnType")
+@Preview
+@Composable
+fun ShowProgress(score: Int = 14, minusOrPlus: Boolean = true) {
+    val gradient = Brush.linearGradient(listOf(Color(0xFFF95075), Color(0xFFBE6BE5)))
+
+    val progressFactor = remember(score) {
+        mutableStateOf(score * 0.005f)
+    }
+
+    Column() {
+        Row(
+            Modifier
+                .padding(3.dp)
+                .fillMaxWidth()
+                .border(
+                    width = 4.dp, brush = Brush.linearGradient(
+                        listOf(AppColors.mLightPurple, AppColors.mLightPurple)
+                    ), shape = RoundedCornerShape(34.dp)
+                )
+                .clip(
+                    RoundedCornerShape(
+                        topStartPercent = 50,
+                        topEndPercent = 50,
+                        bottomStartPercent = 50,
+                        bottomEndPercent = 50
+                    )
+                )
+                .background(Color.Transparent), verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = {},
+                enabled = false,
+                elevation = null,
+                contentPadding = PaddingValues(start = 1.dp, top = 1.dp, bottom = 1.dp),
+                colors = buttonColors(
+                    Color.Transparent,
+                    disabledBackgroundColor = Color.Transparent
+                ),
+                modifier = Modifier
+                    .fillMaxWidth(progressFactor.value)
+                    .background(brush = gradient)
+            ) {
+            }
+        }
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Text(
+                score.toString(),
+                modifier = Modifier
+                    .clip(shape = RoundedCornerShape(23.dp))
+                    .padding(start = 6.dp, bottom = 6.dp, top = 6.dp, end = 0.dp),
+                color = if (minusOrPlus) Color.Green else Color.Red, maxLines = 1
+            )
+        }
+
+
+    }
 }
